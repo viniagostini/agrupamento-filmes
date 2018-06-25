@@ -1,5 +1,5 @@
 ---
-title: "Tipos de filme de FULANO(A)"
+title: "Tipos de filme de Robert De Niro"
 output:
     html_document:
     df_print: paged
@@ -32,6 +32,9 @@ paleta = c("#404E4D",
 ## ANTES DE USAR
 # Para criar data/movies.csv
 # import_data("tom_cruise") ou com o ator/atriz que você escolher
+#import_data("harrison_ford")
+#import_data("brad_pitt")
+import_data("robert_de_niro")
 ```
 
 
@@ -85,6 +88,16 @@ agrupamento_h = filmes %>%
     dist(method = "euclidian") %>% 
     hclust(method = "ward.D")
 
+agrupamento_h_2d = filmes %>% 
+    mutate(bilheteria = log10(bilheteria)) %>%
+    mutate_at(vars(avaliacao, bilheteria), 
+              funs(scale)) %>% 
+    as.data.frame() %>%
+    column_to_rownames("filme") %>%
+    select(avaliacao, bilheteria) %>%
+    dist(method = "euclidean") %>% 
+    hclust(method = "ward.D")
+
 ggdendrogram(agrupamento_h, rotate = T, size = 2, theme_dendro = F) + 
     labs(y = "Dissimilaridade", x = "", title = "Dendrograma")
 ```
@@ -99,29 +112,41 @@ get_grupos <- function(agrupamento, num_grupos){
         mutate(grupo = as.character(grupo))
 }
 
-atribuicoes = get_grupos(agrupamento_h, num_grupos = 1:6)
+atribuicoes = get_grupos(agrupamento_h_2d, num_grupos = 1:6)
 
 atribuicoes = atribuicoes %>% 
     left_join(filmes, by = c("label" = "filme"))
 
 atribuicoes %>% 
-    ggplot(aes(x = "Filmes", y = avaliacao, colour = grupo)) + 
+    mutate(bilheteria = log10(bilheteria)) %>%
+    ggplot(aes(x = bilheteria, y = avaliacao, colour = grupo)) + 
     geom_jitter(width = .02, height = 0, size = 1.6, alpha = .6) + 
     facet_wrap(~ paste(k, " grupos")) + 
     scale_color_brewer(palette = "Dark2")
 
+
+
 ```
 
 ```{r}
-k_escolhido = 3
+k_escolhido = 4
 
-atribuicoes %>% 
+p <- atribuicoes %>% 
     filter(k == k_escolhido) %>% 
-    ggplot(aes(x = reorder(label, avaliacao), y = avaliacao, colour = grupo)) + 
+    ggplot(aes(x = log10(bilheteria), y = avaliacao, colour = grupo, label = label)) + 
     geom_jitter(width = .02, height = 0, size = 3, alpha = .6) + 
-    facet_wrap(~ paste(k, " grupos")) + 
+    facet_wrap(~ paste(k, " tipos de filmes de Robert De Niro")) + 
     scale_color_brewer(palette = "Dark2") + 
-    labs(x = "", y = "Avaliação RT") + 
-    coord_flip() 
+    labs(x = "Bilheteria", y = "Avaliação") + 
+    coord_flip() + 
+    theme(legend.position = "none")
+
+ggplotly(p)
 ```
 
+Podemos ver 4 tipos de filmes de Robert De Niro ao longo de sua carreira:
+
+1. Totais fracassos de de crítica com bilheteria razoável.  
+2. Totais fracassos de bilheteria e crítica razoável.  
+3. Crítica razoável e boa bilheteria.  
+4. Boa crítica e bilheteria.  
